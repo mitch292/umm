@@ -10,73 +10,88 @@ import (
 
 var timeCmd = &cobra.Command{
 	Use:   "time",
-	Short: "Convert a time zone from one to another",
+	Short: "Some help with the time",
 	Long: `
-		Change a time zone from one to another. Default to UTC being passed to the 
-		home time zone represented in your config file. But convert times between some of your
-		aliased time zones as well
+		Get the current time. Or get the current time in another place.
+		How about convert the time from UTC to your local time. Alias time zones
+		in your .umm.yaml file. Make time fun and easy.
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		timeToConvert, _ := cmd.Flags().GetString("convert")
-		originalTz, _ := cmd.Flags().GetString("from-tz")
-		newTz, _ := cmd.Flags().GetString("to-tz")
+		timeFormat, _ := cmd.Flags().GetString("format")
+		originalTz, _ := cmd.Flags().GetString("from")
+		newTz, _ := cmd.Flags().GetString("to")
 
 		wt := whatTime{
 			originalTimeAsString: timeToConvert,
+			originalFormat:       timeFormat,
 			originalTz:           originalTz,
 			newTz:                newTz,
 		}
 
-		// TODO: Is there a more proper place to put viper defaults
-		// viper.SetDefault("timeFormat", time.Kitchen)
-
-		fmt.Println(wt.convertTime().Format(viper.GetString("timeFormat")))
+		// Return it in the user's declared time format, defaults to time.Kitchen
+		convertedTime, err := wt.convertTime()
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			fmt.Println(convertedTime.Format(viper.GetString("timeFormat")))
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(timeCmd)
-	viper.SetDefault("timeFormat", time.Kitchen)
 	timeCmd.Flags().StringP("convert", "c", "", "The time you want to convert")
-	timeCmd.Flags().StringP("from-tz", "F", "utc", "The time zone you want to convert from")
-	timeCmd.Flags().StringP("to-tz", "T", "home", "The time zone you want to convert to")
-	// TODO:Add format here
+	timeCmd.Flags().StringP("format", "f", "15:04:05", "The format of the time to convert, it must be a subset of this string, 'Mon Jan 2 15:04:05 MST 2006'")
+	timeCmd.Flags().StringP("from", "F", "utc", "The time zone you want to convert from")
+	timeCmd.Flags().StringP("to", "T", "home", "The time zone you want to convert to")
 
+	viper.SetDefault("timeFormat", time.Kitchen)
 }
 
 type whatTime struct {
+	originalTimeAsString string
+	originalFormat       string
 	originalTz           string
 	newTz                string
-	originalTimeAsString string
 }
 
-func (wt whatTime) convertTime() time.Time {
+func (wt whatTime) convertTime() (time.Time, error) {
 	tz, err := time.LoadLocation(wt.getTimeZone(wt.newTz))
 
 	if err != nil {
-		fmt.Println("parse error:", err.Error())
+		return time.Now(), err
 	}
 
-	return wt.originalTime().In(tz)
+	convertedTime, err := wt.originalTime()
+
+	if err != nil {
+		return time.Now(), err
+	}
+
+	return convertedTime.In(tz), nil
 }
 
-func (wt whatTime) originalTime() time.Time {
+func (wt whatTime) originalTime() (time.Time, error) {
 	tz, err := time.LoadLocation(wt.getTimeZone(wt.originalTz))
+
+	if err != nil {
+		return time.Now(), err
+	}
 
 	// If they don't pass us a time, lets use now
 	if len(wt.originalTimeAsString) == 0 {
-		return time.Now().In(tz)
+		return time.Now().In(tz), nil
 	}
 
-	layout := "15:04:05"
-	origTime, err := time.ParseInLocation(layout, wt.originalTimeAsString, tz)
+	origTime, err := time.ParseInLocation(wt.originalFormat, wt.originalTimeAsString, tz)
 
 	if err != nil {
-		fmt.Println("parse error:", err.Error())
+		return time.Now(), err
 	}
 
-	return origTime
+	return origTime, nil
 }
 
 func (wt whatTime) getTimeZone(tz string) string {
@@ -84,6 +99,8 @@ func (wt whatTime) getTimeZone(tz string) string {
 
 	if timeZone, ok := timeZones[tz].(string); ok {
 		return timeZone
+	} else {
+
 	}
 
 	fmt.Println("This timezone was not set in your .umm.yaml file, returning utc")

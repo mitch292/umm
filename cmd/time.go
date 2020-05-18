@@ -60,13 +60,12 @@ func (wt whatTime) convertTime() time.Time {
 func (wt whatTime) originalTime() time.Time {
 	tz, err := time.LoadLocation(wt.getTimeZone(wt.originalTz))
 
-	layout := "15:04:05"
-
 	// If they don't pass us a time, lets use now
 	if len(wt.originalTimeAsString) == 0 {
 		return time.Now().In(tz)
 	}
 
+	layout := "15:04:05"
 	origTime, err := time.ParseInLocation(layout, wt.originalTimeAsString, tz)
 
 	if err != nil {

@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/spf13/viper"
+
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +36,6 @@ var timeCmd = &cobra.Command{
 		timeToConvert, _ := cmd.Flags().GetString("convert")
 		originalTz, _ := cmd.Flags().GetString("from-tz")
 		newTz, _ := cmd.Flags().GetString("to-tz")
-		fmt.Println(timeToConvert, originalTz, newTz)
 
 		wt := whatTime{
 			originalTimeAsString: timeToConvert,
@@ -48,25 +49,11 @@ var timeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(timeCmd)
-
 	timeCmd.Flags().StringP("convert", "c", "", "The time you want to convert")
-	timeCmd.Flags().StringP("from-tz", "F", "home", "The time zone you want to convert from")
-	timeCmd.Flags().StringP("to-tz", "T", "UTC", "The time zone you want to convert to")
+	timeCmd.Flags().StringP("from-tz", "F", "utc", "The time zone you want to convert from")
+	timeCmd.Flags().StringP("to-tz", "T", "home", "The time zone you want to convert to")
 	// TODO:Add format here
 
-}
-
-var myTimeZones = map[string]string{
-	"dc":       "America/New_York",
-	"home":     "America/New_York",
-	"office":   "America/New_York",
-	"central":  "America/Chicago",
-	"pacific":  "America/LosAngeles",
-	"mountain": "America/Denver",
-	"kevin":    "Asia/Seoul",
-	"sk":       "Asia/Seoul",
-	"korea":    "Asia/Seoul",
-	"utc":      "UTC",
 }
 
 type whatTime struct {
@@ -76,7 +63,7 @@ type whatTime struct {
 }
 
 func (wt whatTime) ConvertTime() time.Time {
-	tz, err := time.LoadLocation(myTimeZones[wt.newTz])
+	tz, err := time.LoadLocation(wt.getTimeZone(wt.newTz))
 
 	if err != nil {
 		fmt.Println("parse error:", err.Error())
@@ -86,11 +73,9 @@ func (wt whatTime) ConvertTime() time.Time {
 }
 
 func (wt whatTime) originalTime() time.Time {
-	tz, err := time.LoadLocation(myTimeZones[wt.originalTz])
+	tz, err := time.LoadLocation(wt.getTimeZone(wt.originalTz))
 
 	layout := "15:04:05"
-	fmt.Println(wt.originalTimeAsString)
-	fmt.Println(wt.originalTimeAsString)
 
 	newTm, err := time.ParseInLocation(layout, wt.originalTimeAsString, tz)
 
@@ -99,4 +84,15 @@ func (wt whatTime) originalTime() time.Time {
 	}
 
 	return newTm
+}
+
+func (wt whatTime) getTimeZone(tz string) string {
+	timeZones := viper.GetStringMap("timezones")
+
+	if timeZone, ok := timeZones[tz].(string); ok {
+		return timeZone
+	}
+
+	fmt.Println("This timezone was not set in your .umm.yaml file")
+	return ""
 }

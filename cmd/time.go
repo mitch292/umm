@@ -28,12 +28,16 @@ var timeCmd = &cobra.Command{
 			newTz:                newTz,
 		}
 
-		fmt.Println(wt.convertTime().Format(time.Kitchen))
+		// TODO: Is there a more proper place to put viper defaults
+		// viper.SetDefault("timeFormat", time.Kitchen)
+
+		fmt.Println(wt.convertTime().Format(viper.GetString("timeFormat")))
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(timeCmd)
+	viper.SetDefault("timeFormat", time.Kitchen)
 	timeCmd.Flags().StringP("convert", "c", "", "The time you want to convert")
 	timeCmd.Flags().StringP("from-tz", "F", "utc", "The time zone you want to convert from")
 	timeCmd.Flags().StringP("to-tz", "T", "home", "The time zone you want to convert to")
@@ -82,6 +86,6 @@ func (wt whatTime) getTimeZone(tz string) string {
 		return timeZone
 	}
 
-	fmt.Println("This timezone was not set in your .umm.yaml file")
-	return ""
+	fmt.Println("This timezone was not set in your .umm.yaml file, returning utc")
+	return "UTC"
 }

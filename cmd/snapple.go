@@ -21,7 +21,7 @@ var snappleCmd = &cobra.Command{
 
 		rand.Seed(time.Now().Unix())
 		n := rand.Int() % len(snappleFacts)
-		fmt.Printf(snappleFacts[n].text)
+		fmt.Println(snappleFacts[n].text)
 	},
 }
 
@@ -59,7 +59,7 @@ var snappleFacts = []snappleFact{
 	snappleFact{
 		id:       9,
 		category: animalKingdom,
-		text:     "The average speed of a housefly is 4.5 mph. ",
+		text:     "The average speed of a housefly is 4.5 mph.",
 	},
 	snappleFact{
 		id:       38,

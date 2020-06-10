@@ -99,8 +99,6 @@ func (wt whatTime) getTimeZone(tz string) string {
 
 	if timeZone, ok := timeZones[tz].(string); ok {
 		return timeZone
-	} else {
-
 	}
 
 	fmt.Println("This timezone was not set in your .umm.yaml file, returning utc")
